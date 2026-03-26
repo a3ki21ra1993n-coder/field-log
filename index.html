@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FIELD LOG — コンサル業務記録</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Noto+Sans+JP:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0f11;
+    --surface: #161719;
+    --surface2: #1e2023;
+    --border: #2a2c30;
+    --text: #e8e9eb;
+    --muted: #6b6e75;
+    --accent-sales: #f5a623;
+    --accent-bpo: #4fc3f7;
+    --accent-flow: #81c784;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Noto Sans JP', sans-serif; font-weight: 300; min-height: 100vh; overflow-x: hidden; }
+
+  header {
+    padding: 28px 40px 22px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: flex-end; justify-content: space-between;
+    position: sticky; top: 0; background: var(--bg); z-index: 100;
+  }
+  .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 22px; letter-spacing: 0.15em; }
+  .logo span { color: var(--accent-sales); }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .header-meta { font-size: 11px; color: var(--muted); letter-spacing: 0.1em; text-align: right; line-height: 1.8; }
+
+  .view-toggle { display: flex; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .toggle-btn { padding: 8px 16px; font-size: 12px; font-family: 'Syne', sans-serif; font-weight: 600; letter-spacing: 0.08em; cursor: pointer; border: none; background: transparent; color: var(--muted); transition: all 0.15s; }
+  .toggle-btn.active { background: var(--surface); color: var(--text); }
+
+  .new-btn { background: var(--accent-sales); color: #000; border: none; border-radius: 8px; padding: 8px 18px; font-size: 12px; font-family: 'Syne', sans-serif; font-weight: 700; letter-spacing: 0.08em; cursor: pointer; transition: opacity 0.15s; }
+  .new-btn:hover { opacity: 0.85; }
+
+  .main { display: grid; grid-template-columns: 240px 1fr; min-height: calc(100vh - 77px); }
+
+  aside { border-right: 1px solid var(--border); padding: 24px 20px; position: sticky; top: 77px; height: calc(100vh - 77px); overflow-y: auto; }
+  .filter-section { margin-bottom: 28px; }
+  .filter-label { font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; display: block; }
+  .filter-chips { display: flex; flex-direction: column; gap: 5px; }
+  .chip { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; color: var(--muted); transition: all 0.15s; border: 1px solid transparent; user-select: none; }
+  .chip:hover,.chip.active { background: var(--surface2); color: var(--text); border-color: var(--border); }
+  .chip-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .chip-count { margin-left: auto; font-size: 11px; color: var(--muted); font-family: 'Syne', sans-serif; }
+  .search-wrap { position: relative; margin-bottom: 24px; }
+  .search-wrap input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px 10px 34px; color: var(--text); font-size: 13px; font-family: 'Noto Sans JP', sans-serif; outline: none; transition: border-color 0.15s; }
+  .search-wrap input:focus { border-color: var(--accent-sales); }
+  .search-wrap input::placeholder { color: var(--muted); }
+  .search-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 13px; }
+
+  .stats-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); border-bottom: 1px solid var(--border); }
+  .stat-item { background: var(--bg); padding: 18px 24px; }
+  .stat-num { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+  .stat-label { font-size: 11px; color: var(--muted); letter-spacing: 0.08em; }
+
+  .content { padding: 24px 28px; overflow-y: auto; height: calc(100vh - 77px - 73px); }
+  .content-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+  .result-count { font-size: 12px; color: var(--muted); }
+  .sort-select { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 7px 12px; color: var(--text); font-size: 12px; font-family: 'Noto Sans JP', sans-serif; outline: none; cursor: pointer; }
+
+  .log-list { display: flex; flex-direction: column; gap: 10px; }
+  .log-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 22px; cursor: pointer; transition: all 0.18s; animation: fadeUp 0.35s ease both; position: relative; overflow: hidden; }
+  .log-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; }
+  .log-card.sales::before { background: var(--accent-sales); }
+  .log-card.bpo::before { background: var(--accent-bpo); }
+  .log-card.flow::before { background: var(--accent-flow); }
+  .log-card:hover { background: var(--surface2); border-color: #3a3c42; transform: translateX(2px); }
+  .card-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; gap: 12px; }
+  .card-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600; line-height: 1.3; }
+  .badge { font-size: 10px; font-weight: 500; padding: 3px 9px; border-radius: 4px; letter-spacing: 0.05em; white-space: nowrap; }
+  .badge-sales { background: rgba(245,166,35,0.15); color: var(--accent-sales); }
+  .badge-bpo { background: rgba(79,195,247,0.15); color: var(--accent-bpo); }
+  .badge-flow { background: rgba(129,199,132,0.15); color: var(--accent-flow); }
+  .card-meta { font-size: 11px; color: var(--muted); margin-bottom: 10px; }
+  .card-body { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .card-section { background: var(--surface2); border-radius: 6px; padding: 10px 12px; }
+  .card-section-title { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 4px; font-weight: 500; }
+  .good .card-section-title { color: #a5d6a7; }
+  .bad .card-section-title { color: #ef9a9a; }
+  .card-section-text { font-size: 12px; color: #b0b3ba; line-height: 1.6; }
+
+  .client-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+  .client-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; cursor: pointer; transition: all 0.18s; animation: fadeUp 0.35s ease both; }
+  .client-card:hover { background: var(--surface2); border-color: #3a3c42; transform: translateY(-2px); }
+  .client-name { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; margin-bottom: 12px; }
+  .client-genres { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .client-stat-num { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 700; color: var(--accent-sales); line-height: 1; }
+  .client-stat-label { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .client-latest { font-size: 11px; color: var(--muted); margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+
+  .client-detail-header { padding: 22px 28px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .back-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--muted); padding: 7px 14px; cursor: pointer; font-size: 12px; font-family: 'Noto Sans JP', sans-serif; transition: all 0.15s; }
+  .back-btn:hover { color: var(--text); }
+  .client-detail-name { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; }
+  .client-detail-body { padding: 24px 28px; overflow-y: auto; height: calc(100vh - 77px - 73px - 75px); }
+  .timeline-item { display: grid; grid-template-columns: 90px 1fr; }
+  .timeline-left { padding: 0 18px 28px 0; text-align: right; position: relative; }
+  .timeline-left::after { content:''; position:absolute; right:-1px; top:8px; bottom:0; width:1px; background:var(--border); }
+  .timeline-item:last-child .timeline-left::after { display:none; }
+  .timeline-dot { position:absolute; right:-5px; top:6px; width:9px; height:9px; border-radius:50%; border:2px solid var(--bg); }
+  .timeline-date { font-size:11px; color:var(--muted); white-space:nowrap; }
+  .timeline-right { padding: 0 0 28px 22px; }
+  .timeline-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; cursor:pointer; transition: background 0.15s; position:relative; overflow:hidden; }
+  .timeline-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; }
+  .timeline-card.sales::before { background:var(--accent-sales); }
+  .timeline-card.bpo::before { background:var(--accent-bpo); }
+  .timeline-card.flow::before { background:var(--accent-flow); }
+  .timeline-card:hover { background:var(--surface2); }
+  .timeline-card-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .timeline-card-title { font-family:'Syne',sans-serif; font-size:14px; font-weight:600; }
+
+  .detail-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:200; backdrop-filter:blur(3px); }
+  .detail-overlay.open { display:flex; align-items:center; justify-content:center; }
+  .detail-panel { background:var(--surface); border:1px solid var(--border); border-radius:14px; width:580px; max-width:92vw; max-height:85vh; overflow-y:auto; padding:28px; animation:slideUp 0.25s ease; }
+  .detail-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; }
+  .detail-title { font-family:'Syne',sans-serif; font-size:18px; font-weight:700; line-height:1.3; padding-right:12px; }
+  .close-btn { background:var(--surface2); border:1px solid var(--border); border-radius:6px; color:var(--muted); padding:6px 12px; cursor:pointer; font-size:13px; transition:all 0.15s; flex-shrink:0; }
+  .close-btn:hover { color:var(--text); }
+  .detail-meta { font-size:12px; color:var(--muted); margin-bottom:20px; margin-top:8px; }
+  .detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px; }
+  .detail-section { background:var(--surface2); border-radius:8px; padding:14px; }
+  .detail-section-title { font-size:10px; letter-spacing:0.12em; text-transform:uppercase; margin-bottom:7px; font-weight:500; }
+  .good .detail-section-title { color:#a5d6a7; }
+  .bad .detail-section-title { color:#ef9a9a; }
+  .detail-section-text { font-size:13px; color:#c0c3ca; line-height:1.7; }
+  .detail-next { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:14px; }
+  .detail-next-title { font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:#ffe082; margin-bottom:7px; font-weight:500; }
+  .detail-next-text { font-size:13px; color:#c0c3ca; line-height:1.7; }
+
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:300; backdrop-filter:blur(4px); }
+  .modal-overlay.open { display:flex; align-items:center; justify-content:center; }
+  .modal { background:var(--surface); border:1px solid var(--border); border-radius:16px; width:620px; max-width:94vw; max-height:90vh; overflow-y:auto; padding:32px; animation:slideUp 0.25s ease; }
+  .modal-title { font-family:'Syne',sans-serif; font-size:18px; font-weight:800; margin-bottom:24px; display:flex; align-items:center; justify-content:space-between; }
+  .form-row { margin-bottom:18px; }
+  .form-label { font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); font-weight:500; margin-bottom:7px; display:block; }
+  .form-input,.form-select,.form-textarea { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:11px 14px; color:var(--text); font-size:13px; font-family:'Noto Sans JP',sans-serif; outline:none; transition:border-color 0.15s; }
+  .form-input:focus,.form-select:focus,.form-textarea:focus { border-color:var(--accent-sales); }
+  .form-input::placeholder,.form-textarea::placeholder { color:var(--muted); }
+  .form-textarea { resize:vertical; min-height:80px; line-height:1.6; }
+  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:24px; padding-top:20px; border-top:1px solid var(--border); }
+  .btn-cancel { background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--muted); padding:10px 20px; cursor:pointer; font-size:13px; font-family:'Noto Sans JP',sans-serif; transition:all 0.15s; }
+  .btn-cancel:hover { color:var(--text); }
+  .btn-save { background:var(--accent-sales); color:#000; border:none; border-radius:8px; padding:10px 24px; cursor:pointer; font-size:13px; font-family:'Syne',sans-serif; font-weight:700; letter-spacing:0.05em; transition:opacity 0.15s; }
+  .btn-save:hover { opacity:0.85; }
+  .btn-save:disabled { opacity:0.4; cursor:not-allowed; }
+
+  .toast { position:fixed; bottom:28px; right:28px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:14px 20px; font-size:13px; z-index:500; display:none; }
+  .toast.show { display:flex; align-items:center; gap:10px; animation:fadeUp 0.3s ease; }
+  .toast.success { border-color:#81c784; }
+  .toast.error { border-color:#ef9a9a; }
+
+  .empty { padding:60px 0; text-align:center; color:var(--muted); font-size:14px; }
+  .loading { padding:60px 0; text-align:center; color:var(--muted); font-size:13px; }
+
+  @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">FIELD<span>.</span>LOG</div>
+  <div class="header-right">
+    <div class="view-toggle">
+      <button class="toggle-btn active" id="btn-log" onclick="switchView('log')">ログ一覧</button>
+      <button class="toggle-btn" id="btn-client" onclick="switchView('client')">取引先</button>
+    </div>
+    <button class="new-btn" onclick="openModal()">＋ 新規記録</button>
+    <div class="header-meta" id="today-label"></div>
+  </div>
+</header>
+
+<div class="main">
+  <aside>
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="search-input" placeholder="検索">
+    </div>
+    <div class="filter-section" id="genre-filter-section">
+      <span class="filter-label">ジャンル</span>
+      <div class="filter-chips" id="genre-chips">
+        <div class="chip active" data-genre="all"><span class="chip-dot" style="background:#6b6e75"></span>すべて<span class="chip-count" id="cnt-all"></span></div>
+        <div class="chip" data-genre="sales"><span class="chip-dot" style="background:var(--accent-sales)"></span>初回営業<span class="chip-count" id="cnt-sales"></span></div>
+        <div class="chip" data-genre="bpo"><span class="chip-dot" style="background:var(--accent-bpo)"></span>BPO業務<span class="chip-count" id="cnt-bpo"></span></div>
+        <div class="chip" data-genre="flow"><span class="chip-dot" style="background:var(--accent-flow)"></span>業務フロー改善<span class="chip-count" id="cnt-flow"></span></div>
+      </div>
+    </div>
+  </aside>
+
+  <div style="display:flex;flex-direction:column;overflow:hidden;min-height:0;">
+    <div class="stats-bar">
+      <div class="stat-item"><div class="stat-num" id="stat-total" style="color:var(--text)">—</div><div class="stat-label">総案件数</div></div>
+      <div class="stat-item"><div class="stat-num" id="stat-clients" style="color:var(--accent-bpo)">—</div><div class="stat-label">取引先数</div></div>
+      <div class="stat-item"><div class="stat-num" id="stat-latest" style="color:var(--accent-flow);font-size:14px;padding-top:6px;">—</div><div class="stat-label">最終記録</div></div>
+    </div>
+
+    <div class="content" id="view-log">
+      <div class="content-header">
+        <span class="result-count" id="result-count"></span>
+        <select class="sort-select" id="sort-select">
+          <option value="date-desc">新しい順</option>
+          <option value="date-asc">古い順</option>
+          <option value="genre">ジャンル別</option>
+        </select>
+      </div>
+      <div class="log-list" id="log-list"><div class="loading">Notionからデータを読み込み中...</div></div>
+    </div>
+
+    <div class="content" id="view-client" style="display:none;">
+      <div class="content-header"><span class="result-count" id="client-count"></span></div>
+      <div class="client-grid" id="client-grid"></div>
+    </div>
+
+    <div id="view-client-detail" style="display:none;flex-direction:column;">
+      <div class="client-detail-header">
+        <button class="back-btn" onclick="backToClients()">← 取引先一覧</button>
+        <div>
+          <div class="client-detail-name" id="cd-name"></div>
+          <div id="cd-badges" style="display:flex;gap:6px;margin-top:6px;"></div>
+        </div>
+        <div style="margin-left:auto;display:flex;gap:24px;" id="cd-stats"></div>
+      </div>
+      <div class="client-detail-body"><div id="cd-timeline"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL OVERLAY -->
+<div class="detail-overlay" id="detail-overlay">
+  <div class="detail-panel">
+    <div class="detail-header">
+      <div class="detail-title" id="d-title"></div>
+      <button class="close-btn" onclick="closeDetail()">閉じる</button>
+    </div>
+    <div id="d-badge"></div>
+    <div class="detail-meta" id="d-meta"></div>
+    <div class="detail-grid">
+      <div class="detail-section good"><div class="detail-section-title">▲ 良かった点</div><div class="detail-section-text" id="d-good"></div></div>
+      <div class="detail-section bad"><div class="detail-section-title">▼ 改善点</div><div class="detail-section-text" id="d-bad"></div></div>
+    </div>
+    <div class="detail-next"><div class="detail-next-title">→ 次回アクション</div><div class="detail-next-text" id="d-next"></div></div>
+  </div>
+</div>
+
+<!-- NEW ENTRY MODAL -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">新規記録<button class="close-btn" onclick="closeModal()">閉じる</button></div>
+    <div class="form-grid">
+      <div class="form-row"><label class="form-label">案件名 *</label><input class="form-input" id="f-title" placeholder="例：山田製作所 初回営業"></div>
+      <div class="form-row"><label class="form-label">取引先 *</label><input class="form-input" id="f-client" placeholder="例：山田製作所"></div>
+    </div>
+    <div class="form-grid">
+      <div class="form-row"><label class="form-label">ジャンル *</label>
+        <select class="form-select" id="f-genre">
+          <option value="">選択してください</option>
+          <option value="初回営業">初回営業</option>
+          <option value="BPO業務">BPO業務</option>
+          <option value="業務フロー改善">業務フロー改善</option>
+        </select>
+      </div>
+      <div class="form-row"><label class="form-label">日付 *</label><input class="form-input" id="f-date" type="date"></div>
+    </div>
+    <div class="form-row"><label class="form-label">良かった点</label><textarea class="form-textarea" id="f-good" placeholder="うまくいったこと、評価できる点"></textarea></div>
+    <div class="form-row"><label class="form-label">改善点</label><textarea class="form-textarea" id="f-bad" placeholder="次回改善したい点、反省点"></textarea></div>
+    <div class="form-row"><label class="form-label">次回アクション</label><textarea class="form-textarea" id="f-next" placeholder="次にやるべきこと" style="min-height:60px;"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
+      <button class="btn-save" id="save-btn" onclick="saveToNotion()">Notionに保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const NOTION_TOKEN = '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';
+const NOTION_DB_ID = '58f70593f0c84f0aa2d701f386cb530b';
+const PROXY = 'https://api.allorigins.win/raw?url=';
+
+let logs = [], currentView = 'log', activeGenre = 'all', searchQuery = '', sortKey = 'date-desc';
+
+document.getElementById('today-label').textContent = new Date().toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric'});
+document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+loadFromNotion();
+
+async function loadFromNotion() {
+  try {
+    const url = `https://api.notion.com/v1/databases/${NOTION_DB_ID}/query`;
+    const res = await fetch(PROXY + encodeURIComponent(url), {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+NOTION_TOKEN,'Notion-Version':'2022-06-28'},
+      body: JSON.stringify({sorts:[{property:'日付',direction:'descending'}]})
+    });
+    const data = await res.json();
+    if (data.results) {
+      logs = data.results.map(p => {
+        const pr = p.properties;
+        const g = pr['ジャンル']?.select?.name || '';
+        return { id:p.id, title:pr['案件名']?.title?.[0]?.plain_text||'(無題)', client:pr['取引先']?.rich_text?.[0]?.plain_text||'', genre:gk(g), date:pr['日付']?.date?.start||'', good:pr['良かった点']?.rich_text?.[0]?.plain_text||'', bad:pr['改善点']?.rich_text?.[0]?.plain_text||'', next:pr['次回アクション']?.rich_text?.[0]?.plain_text||'' };
+      });
+      updateCounts(); renderStats(); renderLogs(); renderClients();
+    }
+  } catch(e) {
+    document.getElementById('log-list').innerHTML = '<div class="empty">データの読み込みに失敗しました。</div>';
+  }
+}
+
+function gk(l){return l==='初回営業'?'sales':l==='BPO業務'?'bpo':l==='業務フロー改善'?'flow':'sales';}
+function gl(g){return{sales:'初回営業',bpo:'BPO業務',flow:'業務フロー改善'}[g]||g;}
+function bd(g){return`<span class="badge badge-${g}">${gl(g)}</span>`;}
+function fd(d){return d?new Date(d).toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric'}):'—';}
+function fds(d){return d?new Date(d).toLocaleDateString('ja-JP',{month:'short',day:'numeric'}):'—';}
+function tr(s,n){if(!s)return'';return s.length>n?s.slice(0,n)+'…':s;}
+
+function switchView(v) {
+  currentView=v;
+  document.getElementById('btn-log').classList.toggle('active',v==='log');
+  document.getElementById('btn-client').classList.toggle('active',v==='client');
+  document.getElementById('view-log').style.display=v==='log'?'block':'none';
+  document.getElementById('view-client').style.display=v==='client'?'block':'none';
+  document.getElementById('view-client-detail').style.display='none';
+  document.getElementById('genre-filter-section').style.display=v==='log'?'block':'none';
+  renderStats();
+}
+function openClientDetail(name) {
+  currentView='client-detail';
+  document.getElementById('view-log').style.display='none';
+  document.getElementById('view-client').style.display='none';
+  const d=document.getElementById('view-client-detail');d.style.display='flex';d.style.flexDirection='column';
+  renderClientDetail(name);
+}
+function backToClients(){currentView='client';document.getElementById('view-client-detail').style.display='none';document.getElementById('view-client').style.display='block';renderStats();}
+
+function updateCounts(){
+  document.getElementById('cnt-all').textContent=logs.length;
+  document.getElementById('cnt-sales').textContent=logs.filter(l=>l.genre==='sales').length;
+  document.getElementById('cnt-bpo').textContent=logs.filter(l=>l.genre==='bpo').length;
+  document.getElementById('cnt-flow').textContent=logs.filter(l=>l.genre==='flow').length;
+}
+function renderStats(){
+  const data=currentView==='log'?filteredLogs():logs;
+  const clients=[...new Set(data.map(l=>l.client))];
+  const latest=[...data].sort((a,b)=>b.date.localeCompare(a.date))[0];
+  document.getElementById('stat-total').textContent=data.length;
+  document.getElementById('stat-clients').textContent=clients.length;
+  document.getElementById('stat-latest').textContent=latest?.date?fd(latest.date):'—';
+}
+
+function filteredLogs(){
+  return logs.filter(l=>{
+    const mg=activeGenre==='all'||l.genre===activeGenre;
+    const ms=!searchQuery||l.title.includes(searchQuery)||l.client.includes(searchQuery);
+    return mg&&ms;
+  }).sort((a,b)=>{
+    if(sortKey==='date-desc')return b.date.localeCompare(a.date);
+    if(sortKey==='date-asc')return a.date.localeCompare(b.date);
+    if(sortKey==='genre')return a.genre.localeCompare(b.genre);
+    return 0;
+  });
+}
+
+function renderLogs(){
+  renderStats();
+  const data=filteredLogs();
+  document.getElementById('result-count').textContent=data.length+' 件表示';
+  const list=document.getElementById('log-list');
+  if(!data.length){list.innerHTML='<div class="empty">まだ記録がありません。「＋ 新規記録」から追加してください。</div>';return;}
+  list.innerHTML=data.map((l,i)=>`
+    <div class="log-card ${l.genre}" style="animation-delay:${i*.04}s" onclick="openDetail('${l.id}')">
+      <div class="card-top"><div class="card-title">${l.title}</div>${bd(l.genre)}</div>
+      <div class="card-meta">${l.date?fd(l.date):''} ｜ ${l.client}</div>
+      <div class="card-body">
+        <div class="card-section good"><div class="card-section-title">▲ 良かった点</div><div class="card-section-text">${tr(l.good,55)}</div></div>
+        <div class="card-section bad"><div class="card-section-title">▼ 改善点</div><div class="card-section-text">${tr(l.bad,55)}</div></div>
+      </div>
+    </div>`).join('');
+}
+
+function getClientsData(){
+  const map={};
+  logs.forEach(l=>{if(!map[l.client])map[l.client]={name:l.client,logs:[]};map[l.client].logs.push(l);});
+  return Object.values(map).sort((a,b)=>{
+    const la=[...a.logs].sort((x,y)=>y.date.localeCompare(x.date))[0]?.date||'';
+    const lb=[...b.logs].sort((x,y)=>y.date.localeCompare(x.date))[0]?.date||'';
+    return lb.localeCompare(la);
+  });
+}
+function renderClients(){
+  const clients=getClientsData().filter(c=>!searchQuery||c.name.includes(searchQuery));
+  document.getElementById('client-count').textContent=clients.length+' 社';
+  const grid=document.getElementById('client-grid');
+  if(!clients.length){grid.innerHTML='<div class="empty">取引先がありません</div>';return;}
+  grid.innerHTML=clients.map((c,i)=>{
+    const genres=[...new Set(c.logs.map(l=>l.genre))];
+    const latest=[...c.logs].sort((a,b)=>b.date.localeCompare(a.date))[0];
+    return`<div class="client-card" style="animation-delay:${i*.05}s" onclick="openClientDetail('${c.name}')">
+      <div class="client-name">${c.name}</div>
+      <div class="client-genres">${genres.map(g=>bd(g)).join('')}</div>
+      <div style="display:flex;gap:20px;">
+        <div><div class="client-stat-num">${c.logs.length}</div><div class="client-stat-label">記録数</div></div>
+        <div><div class="client-stat-num" style="color:var(--accent-bpo)">${genres.length}</div><div class="client-stat-label">ジャンル数</div></div>
+      </div>
+      <div class="client-latest">最終記録：${latest?.date?fd(latest.date):'—'}｜${gl(latest.genre)}</div>
+    </div>`;
+  }).join('');
+}
+function renderClientDetail(name){
+  const cl=logs.filter(l=>l.client===name).sort((a,b)=>b.date.localeCompare(a.date));
+  const genres=[...new Set(cl.map(l=>l.genre))];
+  document.getElementById('cd-name').textContent=name;
+  document.getElementById('cd-badges').innerHTML=genres.map(g=>bd(g)).join('');
+  document.getElementById('cd-stats').innerHTML=`<div style="text-align:center"><div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:700;color:var(--accent-sales)">${cl.length}</div><div style="font-size:11px;color:var(--muted);margin-top:2px">記録数</div></div><div style="text-align:center"><div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:700;color:var(--accent-bpo)">${genres.length}</div><div style="font-size:11px;color:var(--muted);margin-top:2px">ジャンル数</div></div>`;
+  document.getElementById('cd-timeline').innerHTML=cl.map(l=>`
+    <div class="timeline-item">
+      <div class="timeline-left"><div class="timeline-date">${l.date?fds(l.date):''}</div><div class="timeline-dot" style="background:${l.genre==='sales'?'var(--accent-sales)':l.genre==='bpo'?'var(--accent-bpo)':'var(--accent-flow)'}"></div></div>
+      <div class="timeline-right"><div class="timeline-card ${l.genre}" onclick="openDetail('${l.id}')">
+        <div class="timeline-card-top"><div class="timeline-card-title">${l.title}</div>${bd(l.genre)}</div>
+        <div class="card-body">
+          <div class="card-section good"><div class="card-section-title">▲ 良かった点</div><div class="card-section-text">${tr(l.good,52)}</div></div>
+          <div class="card-section bad"><div class="card-section-title">▼ 改善点</div><div class="card-section-text">${tr(l.bad,52)}</div></div>
+        </div>
+      </div></div>
+    </div>`).join('');
+}
+
+function openDetail(id){
+  const l=logs.find(x=>x.id===id);if(!l)return;
+  document.getElementById('d-title').textContent=l.title;
+  document.getElementById('d-badge').innerHTML=bd(l.genre);
+  document.getElementById('d-meta').textContent=(l.date?fd(l.date):'')+' ｜ '+l.client;
+  document.getElementById('d-good').textContent=l.good||'（記録なし）';
+  document.getElementById('d-bad').textContent=l.bad||'（記録なし）';
+  document.getElementById('d-next').textContent=l.next||'（記録なし）';
+  document.getElementById('detail-overlay').classList.add('open');
+}
+function closeDetail(){document.getElementById('detail-overlay').classList.remove('open');}
+document.getElementById('detail-overlay').addEventListener('click',e=>{if(e.target===document.getElementById('detail-overlay'))closeDetail();});
+
+function openModal(){document.getElementById('modal-overlay').classList.add('open');}
+function closeModal(){
+  document.getElementById('modal-overlay').classList.remove('open');
+  ['f-title','f-client','f-good','f-bad','f-next'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-genre').value='';
+  document.getElementById('f-date').value=new Date().toISOString().split('T')[0];
+}
+document.getElementById('modal-overlay').addEventListener('click',e=>{if(e.target===document.getElementById('modal-overlay'))closeModal();});
+
+async function saveToNotion(){
+  const title=document.getElementById('f-title').value.trim();
+  const client=document.getElementById('f-client').value.trim();
+  const genre=document.getElementById('f-genre').value;
+  const date=document.getElementById('f-date').value;
+  if(!title||!client||!genre||!date){showToast('必須項目を入力してください','error');return;}
+  const btn=document.getElementById('save-btn');btn.disabled=true;btn.textContent='保存中...';
+  try{
+    const url='https://api.notion.com/v1/pages';
+    const res=await fetch(PROXY+encodeURIComponent(url),{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+NOTION_TOKEN,'Notion-Version':'2022-06-28'},body:JSON.stringify({parent:{database_id:NOTION_DB_ID},properties:{'案件名':{title:[{text:{content:title}}]},'取引先':{rich_text:[{text:{content:client}}]},'ジャンル':{select:{name:genre}},'日付':{date:{start:date}},'良かった点':{rich_text:[{text:{content:document.getElementById('f-good').value.trim()}}]},'改善点':{rich_text:[{text:{content:document.getElementById('f-bad').value.trim()}}]},'次回アクション':{rich_text:[{text:{content:document.getElementById('f-next').value.trim()}}]}}})});
+    const data=await res.json();
+    if(data.id){closeModal();showToast('✓ Notionに保存しました！','success');await loadFromNotion();}
+    else showToast('保存に失敗しました','error');
+  }catch(e){showToast('エラーが発生しました','error');}
+  finally{btn.disabled=false;btn.textContent='Notionに保存';}
+}
+
+function showToast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.className=`toast show ${type}`;setTimeout(()=>t.className='toast',3000);}
+
+document.getElementById('genre-chips').addEventListener('click',e=>{const chip=e.target.closest('[data-genre]');if(!chip)return;activeGenre=chip.dataset.genre;document.querySelectorAll('[data-genre]').forEach(c=>c.classList.remove('active'));chip.classList.add('active');renderLogs();renderStats();});
+document.getElementById('search-input').addEventListener('input',e=>{searchQuery=e.target.value;if(currentView==='log')renderLogs();else if(currentView==='client')renderClients();});
+document.getElementById('sort-select').addEventListener('change',e=>{sortKey=e.target.value;renderLogs();});
+</script>
+</body>
+</html>
